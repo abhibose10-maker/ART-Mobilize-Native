@@ -1,42 +1,25 @@
-export const ROLES = {
-  SUPER_ADMIN: 'SuperAdmin',
-  ADMIN: 'Admin',
-  STAFF: 'Staff',
-} as const;
+// Constants for the ART Mobilize Native project
 
-export const ART_TYPES = {
-  ROAD: 'Road',
-  RAIL: 'Rail',
-  MEDICAL: 'Medical',
-} as const;
+export const roles = {
+    ADMIN: 'admin',
+    USER: 'user',
+    GUEST: 'guest',
+};
 
-export const DIVISIONS = [
-  'Western',
-  'Central',
-  'Eastern',
-  'Northern',
-  'Southern',
-];
+export const divisions = {
+    SALES: 'sales',
+    MARKETING: 'marketing',
+    DEVELOPMENT: 'development',
+};
 
-export const ART_LOCATIONS = {
-  KALYAN: 'Kalyan',
-  KURLA: 'Kurla',
-  CSMT: 'CSMT',
-  DADAR: 'Dadar',
-  BYCULLA: 'Byculla',
-} as const;
+export const artTypes = {
+    PAINTING: 'painting',
+    SCULPTURE: 'sculpture',
+    DIGITAL: 'digital',
+};
 
-export const ALERT_STATUS = {
-  ACTIVE: 'active',
-  CLOSED: 'closed',
-} as const;
-
-export const PERMISSIONS = {
-  RECEIVE_ALERT: 'receive_alert',
-  ACKNOWLEDGE_ALERT: 'acknowledge_alert',
-  SHARE_GPS: 'share_gps',
-  SEND_ALERT: 'send_alert',
-  VIEW_ACKNOWLEDGEMENTS: 'view_acknowledgements',
-  VIEW_LIVE_MAP: 'view_live_map',
-  ACCESS_ADMIN_PANEL: 'access_admin_panel',
-} as const;
+export const artLocations = {
+    GALLERY: 'gallery',
+    EXHIBITION: 'exhibition',
+    PRIVATE_COLLECTION: 'private_collection',
+};
