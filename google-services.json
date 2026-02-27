@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "592687174079",
+    "project_id": "studio-7368177292-70057",
+    "storage_bucket": "studio-7368177292-70057.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:592687174079:android:d08f45b9de3b327862510a",
+        "android_client_info": {
+          "package_name": "com.artmobilize.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCPIV2n9spy47G7luHnRxI4mv_0y5lvqnM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
