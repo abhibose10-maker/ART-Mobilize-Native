@@ -1,23 +1,45 @@
-// src/models/types.ts
+export type Role = 'SuperAdmin' | 'Admin' | 'Staff';
 
-type User = {
-    id: string;
-    name: string;
-    email: string;
-};
+export type ArtType = 'Road' | 'Rail' | 'Medical';
 
+export type ArtLocation = 'Kalyan' | 'Kurla' | 'CSMT' | 'Others';
 
-type Alert = {
-    id: string;
-    message: string;
-    timestamp: Date;
-};
+export type AlertStatus = 'active' | 'closed';
 
+export interface User {
+  userId: string;
+  name: string;
+  employeeId: string;
+  mobile: string;
+  email: string;
+  role: Role;
+  division: string;
+  artType: ArtType | null;
+  artLocation: ArtLocation | null;
+  fcmToken: string;
+  createdAt: number;
+  updatedAt: number;
+}
 
-type Acknowledgement = {
-    alertId: string;
-    userId: string;
-    acknowledgedAt: Date;
-};
+export interface Alert {
+  alertId: string;
+  division: string;
+  artType: ArtType;
+  artLocation: ArtLocation;
+  createdBy: string;
+  timestamp: number;
+  status: AlertStatus;
+  description?: string;
+}
 
-export type { User, Alert, Acknowledgement };
+export interface Acknowledgement {
+  ackId: string;
+  alertId: string;
+  userId: string;
+  division: string;
+  artType: ArtType;
+  artLocation: ArtLocation;
+  latitude: number;
+  longitude: number;
+  timestamp: number;
+}
