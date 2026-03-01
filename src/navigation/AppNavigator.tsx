@@ -34,6 +34,12 @@ import DivisionOverviewScreen from '../screens/super_admin/DivisionOverviewScree
 import FullScreenAlertScreen from '../screens/FullScreenAlertScreen';
 import { useAuthStore } from '../store/authstore';
 
+// ── Notifications ref ─────────────────────────────────────────
+import { navigationRef } from '../services/notifications';
+
+// ── Push notifications registration ──────────────────────────
+import { registerForPushNotifications } from '../services/notifications';
+
 // ─────────────────────────────────────────────────────────────
 const Stack = createNativeStackNavigator();
 
@@ -48,12 +54,10 @@ const AppNavigator = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Step 1: Listen to Firebase Auth state
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user);
 
       if (user) {
-        // Step 2: Listen to Firestore user doc in real-time
         const unsubscribeFirestore = onSnapshot(
           doc(db, 'users', user.uid),
           (snap) => {
@@ -69,7 +73,6 @@ const AppNavigator = () => {
             setLoading(false);
           }
         );
-
         return () => unsubscribeFirestore();
       } else {
         setUserData(null);
@@ -80,10 +83,20 @@ const AppNavigator = () => {
     return () => unsubscribeAuth();
   }, []);
 
+  // Register for push notifications when approved
+  useEffect(() => {
+    if (userData?.approved && userData?.uid) {
+      registerForPushNotifications(userData.uid).catch(err =>
+        console.warn('Push notification registration error:', err)
+      );
+    }
+  }, [userData?.uid, userData?.approved]);
+
   if (loading) return <LoadingScreen />;
 
   return (
-    <NavigationContainer>
+    // ✅ Pass navigationRef so notifications can navigate
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
 
         {/* NOT LOGGED IN */}
@@ -110,7 +123,7 @@ const AppNavigator = () => {
           <>
             <Stack.Screen name="SuperAdminDashboard" component={SuperadminDashboard} />
             <Stack.Screen name="DivisionOverview" component={DivisionOverviewScreen} />
-            <Stack.Screen name="FullScreenAlert" component={FullScreenAlertScreen} />
+            <Stack.Screen name="FullScreenAlert" component={FullScreenAlertScreen} options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
           </>
 
         /* ADMIN */
@@ -120,7 +133,7 @@ const AppNavigator = () => {
             <Stack.Screen name="CreateAlert" component={CreateAlertScreen} />
             <Stack.Screen name="LiveMap" component={LiveMapScreen} />
             <Stack.Screen name="Acknowledgements" component={AcknowledgementsScreen} />
-            <Stack.Screen name="FullScreenAlert" component={FullScreenAlertScreen} />
+            <Stack.Screen name="FullScreenAlert" component={FullScreenAlertScreen} options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
           </>
 
         /* STAFF */
@@ -129,7 +142,7 @@ const AppNavigator = () => {
             <Stack.Screen name="StaffDashboard" component={StaffDashboard} />
             <Stack.Screen name="AlertAcknowledgement" component={AlertAcknowledgementScreen} />
             <Stack.Screen name="LiveGPS" component={LiveGPSScreen} />
-            <Stack.Screen name="FullScreenAlert" component={FullScreenAlertScreen} />
+            <Stack.Screen name="FullScreenAlert" component={FullScreenAlertScreen} options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
           </>
 
         /* UNKNOWN ROLE FALLBACK */
