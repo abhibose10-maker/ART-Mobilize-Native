@@ -27,6 +27,7 @@ type UserProfile = {
   role: 'staff' | 'admin' | 'superadmin';
   artType?: string;
   artLocation?: string;
+  division?: string;
   status: 'pending' | 'approved' | 'rejected';
   rejectionReason?: string;
 };
@@ -42,6 +43,7 @@ type RootStackParamList = {
     role: string;
     artType: string;
     artLocation: string;
+    division: string;
   };
   AdminDashboard: {
     uid: string;
@@ -49,11 +51,13 @@ type RootStackParamList = {
     role: string;
     artType: string;
     artLocation: string;
+    division: string;
   };
   SuperadminDashboard: {
     uid: string;
     name: string;
     role: string;
+    division: string;
   };
   FullScreenAlert: {
     alertId: string;
@@ -66,6 +70,7 @@ type RootStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const DIVISION = 'Central Railways Mumbai';
 
 export default function App() {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
@@ -74,9 +79,7 @@ export default function App() {
 
   useEffect(() => {
     const removeListeners = setupNotificationListeners();
-    return () => {
-      removeListeners();
-    };
+    return () => removeListeners();
   }, []);
 
   useEffect(() => {
@@ -92,13 +95,14 @@ export default function App() {
             if (snapshot.exists()) {
               const data = snapshot.data() as any;
               setProfile({
-                uid: user.uid,
-                name: data.name ?? '',
-                email: data.email ?? user.email ?? '',
-                role: data.role ?? 'staff',
-                artType: data.artType,
-                artLocation: data.artLocation,
-                status: data.status ?? 'pending',
+                uid:             user.uid,
+                name:            data.name ?? '',
+                email:           data.email ?? user.email ?? '',
+                role:            data.role ?? 'staff',
+                artType:         data.artType,
+                artLocation:     data.artLocation,
+                division:        data.division ?? DIVISION,
+                status:          data.status ?? 'pending',
                 rejectionReason: data.rejectionReason,
               });
             } else {
@@ -106,22 +110,15 @@ export default function App() {
             }
             setInitializing(false);
           },
-          () => {
-            setInitializing(false);
-          },
+          () => setInitializing(false),
         );
-
-        return () => {
-          unsubscribeProfile();
-        };
+        return () => unsubscribeProfile();
       } else {
         setInitializing(false);
       }
     });
 
-    return () => {
-      unsubscribeAuth();
-    };
+    return () => unsubscribeAuth();
   }, []);
 
   useEffect(() => {
@@ -140,94 +137,25 @@ export default function App() {
     );
   }
 
-  const isLoggedIn = !!firebaseUser;
-
-  const renderInitialRoute = () => {
-    if (!isLoggedIn) return 'Login';
-    if (!profile) return 'Login';
-    if (profile.status === 'pending') return 'PendingApproval';
-    if (profile.status === 'rejected') return 'Rejected';
-    if (profile.role === 'staff') return 'StaffDashboard';
-    if (profile.role === 'admin') return 'AdminDashboard';
-    return 'SuperadminDashboard';
-  };
-
-  const getInitialParams = (screenName: string): any => {
-    if (!profile) return undefined;
-    switch (screenName) {
-      case 'PendingApproval':
-        return { name: profile.name, role: profile.role };
-      case 'Rejected':
-        return { name: profile.name, role: profile.role, rejectionReason: profile.rejectionReason };
-      case 'StaffDashboard':
-      case 'AdminDashboard':
-        return {
-          uid: profile.uid,
-          name: profile.name,
-          role: profile.role,
-          artType: profile.artType ?? '',
-          artLocation: profile.artLocation ?? '',
-        };
-      case 'SuperadminDashboard':
-        return { uid: profile.uid, name: profile.name, role: profile.role };
-      default:
-        return undefined;
-    }
-  };
-
-  if (!isLoggedIn || !profile) {
-    return (
-      <NavigationContainer ref={navigationRef}>
-        <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Register" component={RegisterScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    );
-  }
-
-  const initialRoute = renderInitialRoute();
-
   return (
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
-        initialRouteName={initialRoute as any}
         screenOptions={{ headerShown: false }}>
 
-        {/* Auth screens */}
+        {/* Auth screens — always available */}
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
 
         {/* Status screens */}
-        <Stack.Screen
-          name="PendingApproval"
-          component={PendingApprovalScreen}
-          initialParams={getInitialParams('PendingApproval')}
-        />
-        <Stack.Screen
-          name="Rejected"
-          component={RejectedScreen}
-          initialParams={getInitialParams('Rejected')}
-        />
+        <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
+        <Stack.Screen name="Rejected" component={RejectedScreen} />
 
         {/* Role dashboards */}
-        <Stack.Screen
-          name="StaffDashboard"
-          component={StaffDashboard}
-          initialParams={getInitialParams('StaffDashboard')}
-        />
-        <Stack.Screen
-          name="AdminDashboard"
-          component={AdminDashboard}
-          initialParams={getInitialParams('AdminDashboard')}
-        />
-        <Stack.Screen
-          name="SuperadminDashboard"
-          component={SuperadminDashboard}
-          initialParams={getInitialParams('SuperadminDashboard')}
-        />
+        <Stack.Screen name="StaffDashboard" component={StaffDashboard} />
+        <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
+        <Stack.Screen name="SuperadminDashboard" component={SuperadminDashboard} />
 
-        {/* Full screen alert modal — appears over everything */}
+        {/* Full screen alert */}
         <Stack.Screen
           name="FullScreenAlert"
           component={FullScreenAlertScreen}
@@ -241,4 +169,3 @@ export default function App() {
     </NavigationContainer>
   );
 }
-

@@ -1,6 +1,7 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyC_fWpYSYECgHhhwaMwTbXsfJiKjuDdftA',
@@ -11,10 +12,10 @@ const firebaseConfig = {
   appId: '1:592687174079:android:d08f45b9de3b327862510a'
 };
 
-const app = initializeApp(firebaseConfig);
+// Safe initialization — won't crash if called twice
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-const auth = getAuth(app);
-
-const db = getFirestore(app);
-
-export { app, auth, db };
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+export { app };

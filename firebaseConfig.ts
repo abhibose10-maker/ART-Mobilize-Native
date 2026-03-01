@@ -7,7 +7,7 @@ const firebaseConfig = {
   apiKey: 'AIzaSyC_fWpYSYECgHhhwaMwTbXsfJiKjuDdftA',
   authDomain: 'studio-7368177292-70057.firebaseapp.com',
   projectId: 'studio-7368177292-70057',
-  storageBucket: 'studio-7368177292-70057.appspot.com',
+  storageBucket:'studio-7368177292-70057.firebasestorage.app',
   messagingSenderId: '592687174079',
   appId: '1:592687174079:web:5c5847a8aca748a762510a',
 };

@@ -1,4 +1,4 @@
-{
+﻿{
   "expo": {
     "name": "ART Mobilize",
     "slug": "art-mobilize",
@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Allow ART Mobilize to access your photos for profile picture upload."
+      }
     },
     "android": {
       "package": "com.artmobilize.app",
@@ -32,7 +35,10 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -53,20 +59,22 @@
           }
         }
       ],
-      "@react-native-firebase/app",
-      "@react-native-firebase/messaging",
       "expo-audio",
       [
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "sounds": [
-            "./assets/siren.mp3"
-          ],
+          "sounds": ["./assets/siren.mp3"],
           "mode": "production"
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow ART Mobilize to access your photos for profile picture upload."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

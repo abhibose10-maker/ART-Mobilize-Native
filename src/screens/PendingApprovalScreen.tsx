@@ -1,40 +1,36 @@
+// src/screens/PendingApprovalScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, StatusBar } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  StatusBar,
+} from 'react-native';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { C, S, R } from '../theme';
 
-type PendingRouteParams = {
-  PendingApproval: {
-    uid?: string;
-    name?: string;
-    role?: string;
-    artType?: string;
-    artLocation?: string;
-  };
-};
-
 const PendingApprovalScreen: React.FC = () => {
-  const navigation = useNavigation();
-  const route = useRoute<RouteProp<PendingRouteParams, 'PendingApproval'>>();
+  const [statusUpdated, setStatusUpdated] = useState(false);
 
-  const [checking, setChecking] = useState(false);
-  const uid = route.params?.uid ?? auth.currentUser?.uid ?? '';
-  const name = route.params?.name ?? 'User';
-  const role = route.params?.role ?? 'staff';
-  const artType = route.params?.artType ?? '';
-  const artLocation = route.params?.artLocation ?? '';
+  const uid = auth.currentUser?.uid ?? '';
+  const email = auth.currentUser?.email ?? '';
 
   useEffect(() => {
     if (!uid) return;
-    
+
     const unsub = onSnapshot(doc(db, 'users', uid), (snap) => {
       if (snap.exists()) {
         const data = snap.data();
-        if (data.status === 'approved' || data.status === 'rejected') {
-          setChecking(true);
+
+        // ✅ Correct field names matching your Firestore schema
+        if (data.approved === true || data.rejected === true) {
+          setStatusUpdated(true);
+          // AppNavigator's own onSnapshot will handle the actual navigation
+          // No need to navigate manually here
         }
       }
     });
@@ -43,46 +39,49 @@ const PendingApprovalScreen: React.FC = () => {
   }, [uid]);
 
   const handleLogout = async () => {
-    await signOut(auth);
+    try {
+      await signOut(auth);
+      // Navigation handled automatically by AppNavigator onAuthStateChanged
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={C.bg} />
-      {checking && (
+
+      {/* Status update banner — shows when admin has acted */}
+      {statusUpdated && (
         <View style={styles.checkingBanner}>
           <ActivityIndicator color="#3b82f6" size="small" />
-          <Text style={styles.checkingText}>Status updated, refreshing...</Text>
+          <Text style={styles.checkingText}>Status updated, redirecting...</Text>
         </View>
       )}
+
       <Text style={styles.title}>Your account is pending approval</Text>
-      <Text style={styles.subtitle}>
-        Hi {name} ({role})
-      </Text>
+
+      <Text style={styles.subtitle}>Hi {email}</Text>
+
       <View style={styles.detailsCard}>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Role:</Text>
-          <Text style={styles.detailValue}>{role}</Text>
+          <Text style={styles.detailLabel}>Email:</Text>
+          <Text style={styles.detailValue}>{email}</Text>
         </View>
-        {artType ? (
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>ART Type:</Text>
-            <Text style={styles.detailValue}>{artType}</Text>
-          </View>
-        ) : null}
-        {artLocation ? (
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>ART Location:</Text>
-            <Text style={styles.detailValue}>{artLocation}</Text>
-          </View>
-        ) : null}
+        <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+          <Text style={styles.detailLabel}>Status:</Text>
+          <Text style={[styles.detailValue, { color: '#f59e0b' }]}>Pending</Text>
+        </View>
       </View>
+
       <Text style={styles.body}>
-        An administrator is reviewing your details. You&apos;ll be notified once your account is
-        approved.
+        An administrator is reviewing your details.{'\n'}
+        You'll be notified once your account is approved.
       </Text>
-      <Text style={[styles.body, { fontSize: 12, marginTop: 8 }]}>
-        Auto-refreshing every 30 seconds...
+
+      {/* Removed fake "auto-refreshing" text — real-time listener handles this */}
+      <Text style={[styles.body, { fontSize: 12, marginTop: 4, opacity: 0.5 }]}>
+        Listening for updates in real-time...
       </Text>
 
       <TouchableOpacity style={styles.button} onPress={handleLogout}>
@@ -118,9 +117,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: C.textSec,
     textAlign: 'center',
-    marginBottom: S.xxxl,
+    marginBottom: S.lg,
+    lineHeight: 20,
   },
   button: {
+    marginTop: S.lg,
     paddingHorizontal: S.xxxl,
     paddingVertical: S.md,
     borderRadius: R.pill,
@@ -180,4 +181,3 @@ const styles = StyleSheet.create({
 });
 
 export default PendingApprovalScreen;
-

@@ -1,48 +1,33 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import * as TaskManager from 'expo-task-manager';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { doc, updateDoc } from 'firebase/firestore';
 import { createRef } from 'react';
 import { NavigationContainerRef } from '@react-navigation/native';
-import messaging from '@react-native-firebase/messaging';
-import { auth, db } from '../config/firebase';
-import * as TaskManager from 'expo-task-manager';
+import { Audio } from 'expo-av';
+import { db } from '../config/firebase';
 
-// Shared navigation ref — set in App.tsx via ref={navigationRef}
+// ── Navigation ref ─────────────────────────────────────────
 export const navigationRef = createRef<NavigationContainerRef<any>>();
 
-// FCM token refresh — keeps Firestore token up to date after app reinstall/token rotation
-messaging().onTokenRefresh(async (newToken: string) => {
-  const user = auth.currentUser;
-  if (user) {
-    try {
-      await updateDoc(doc(db, 'users', user.uid), {
-        fcmToken: newToken,
-      });
-      console.log('FCM token refreshed and saved to Firestore');
-    } catch (e) {
-      console.error('Failed to update refreshed FCM token', e);
-    }
-  }
-});
-
+// ── Background task ────────────────────────────────────────
 const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND-NOTIFICATION-TASK';
 
-TaskManager.defineTask(
-  BACKGROUND_NOTIFICATION_TASK,
-  ({ data, error }) => {
-    if (error) {
-      console.error('Background notification error:', error);
-      return;
-    }
-    console.log('Background notification received:', data);
-  },
-);
+TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, ({ data, error }) => {
+  if (error) {
+    console.error('Background notification error:', error);
+    return;
+  }
+  console.log('Background notification received:', data);
+});
 
 Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK).catch(err =>
   console.error('Failed to register background notification task', err),
 );
 
+// ── Foreground handler ─────────────────────────────────────
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -51,20 +36,48 @@ Notifications.setNotificationHandler({
   }),
 });
 
-function navigateToAlert(data: Record<string, any>) {
-  if (data?.type === 'alert' && navigationRef.current) {
-    navigationRef.current.navigate('FullScreenAlert', {
-      alertId: data.alertId ?? '',
-      message: data.message ?? '',
-      artType: data.artType ?? '',
-      artLocation: data.artLocation ?? '',
-      createdAt: data.createdAt ?? new Date().toISOString(),
+// ── Siren player ───────────────────────────────────────────
+async function playSiren() {
+  try {
+    await Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      shouldDuckAndroid: false,
     });
+    const { sound } = await Audio.loadAsync(
+      require('../../assets/siren.mp3'),
+    );
+    await sound.playAsync();
+    sound.setOnPlaybackStatusUpdate(status => {
+      if ('didJustFinish' in status && status.didJustFinish) {
+        sound.unloadAsync();
+      }
+    });
+  } catch (e) {
+    console.warn('Could not play siren:', e);
   }
 }
 
+// ── Navigate to full screen alert ─────────────────────────
+function navigateToAlert(data: Record<string, any>) {
+  if (!navigationRef.current) return;
+  if (!data?.alertId && !data?.type) return;
+
+  navigationRef.current.navigate('FullScreenAlert', {
+    alertId:     data.alertId     ?? '',
+    message:     data.message     ?? '',
+    artType:     data.artType     ?? '',
+    artLocation: data.artLocation ?? '',
+    createdAt:   data.createdAt   ?? new Date().toISOString(),
+    userName:    data.userName    ?? '',
+  });
+}
+
+// ── Register device + save token ──────────────────────────
 export async function registerForPushNotifications(userId: string) {
-  if (!Device.isDevice) return;
+  if (!Device.isDevice) {
+    console.warn('Push notifications only work on a physical device');
+    return;
+  }
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
@@ -74,14 +87,10 @@ export async function registerForPushNotifications(userId: string) {
     finalStatus = status;
   }
 
-  if (finalStatus !== 'granted') return;
-
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
-
-  await updateDoc(doc(db, 'users', userId), {
-    fcmToken: token,
-    expoPushToken: token,
-  });
+  if (finalStatus !== 'granted') {
+    console.warn('Push notification permission not granted');
+    return;
+  }
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('art_alerts', {
@@ -92,31 +101,55 @@ export async function registerForPushNotifications(userId: string) {
       enableVibrate: true,
       showBadge: true,
       bypassDnd: true,
-      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      lockscreenVisibility:
+        Notifications.AndroidNotificationVisibility.PUBLIC,
     });
   }
 
-  return token;
+  // SDK 54 requires projectId explicitly
+  const projectId =
+    Constants.expoConfig?.extra?.eas?.projectId ??
+    Constants.easConfig?.projectId;
+
+  if (!projectId) {
+    console.error('No EAS projectId found in app.json');
+    return;
+  }
+
+  const { data: expoPushToken } = await Notifications.getExpoPushTokenAsync({
+    projectId,
+  });
+
+  await updateDoc(doc(db, 'users', userId), {
+    fcmToken:      expoPushToken,
+    expoPushToken: expoPushToken,
+  });
+
+  console.log('Push token saved:', expoPushToken);
+  return expoPushToken;
 }
 
+// ── Notification listeners ─────────────────────────────────
 export function setupNotificationListeners() {
-  // Foreground: notification arrives while app is open
-  const foregroundSubscription = Notifications.addNotificationReceivedListener(notification => {
-    console.log('Foreground notification:', notification);
-    const data = notification.request.content.data as Record<string, any>;
-    navigateToAlert(data);
-  });
+  const foregroundSub = Notifications.addNotificationReceivedListener(
+    async notification => {
+      const data = notification.request.content.data as Record<string, any>;
+      await playSiren();
+      navigateToAlert(data);
+    },
+  );
 
-  // Background/closed: user taps notification
-  const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
-    console.log('Notification tapped:', response);
-    const data = response.notification.request.content.data as Record<string, any>;
-    navigateToAlert(data);
-  });
+  const responseSub = Notifications.addNotificationResponseReceivedListener(
+    response => {
+      const data =
+        response.notification.request.content.data as Record<string, any>;
+      navigateToAlert(data);
+    },
+  );
 
   return () => {
-    foregroundSubscription.remove();
-    responseSubscription.remove();
+    foregroundSub.remove();
+    responseSub.remove();
   };
 }
-
+``
